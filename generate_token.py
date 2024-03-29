@@ -70,5 +70,3 @@ def decode_and_validate_token(): #get_token_payload/claims
         return payload
     except ExpiredSignatureError as error:
         print(f'Unable to decode the token, error: {error}')
-    
-print(decode_and_validate_token())
