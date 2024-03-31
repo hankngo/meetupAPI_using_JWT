@@ -39,11 +39,13 @@ def fetch_groups(endCursor=""):
 
     data = {
         "query": """
-        query ($searchGroupInput: ConnectionInput!, 
+        query (
+            $searchGroupInput: ConnectionInput!, 
             $searchGroupFilter: SearchConnectionFilter!,
             $sortOrder: KeywordSort!
         ) {
-            keywordSearch(input: $searchGroupInput, 
+            keywordSearch(
+                input: $searchGroupInput, 
                 filter: $searchGroupFilter,
                 sort: $sortOrder
             ) {
@@ -106,4 +108,65 @@ def get_rush_groups():
 print(len(get_rush_groups()))
 
 def get_events(groups):
+    URL = "https://api.meetup.com/gql"
+    access_token, refresh_token = authenticate()
+
+    if not access_token:
+        print("Authentication failed, cannot proceed to fetch events.")
+        return
+
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json",
+    }
+    data = {}
+    for group in groups:
+        urlName = group["urlName"]
+        data = {
+            "query": """
+            query (
+                $searchEventInput: EventAdminInput!, 
+                $searchEventsFilter: GroupEventsFilter!,
+                $sortOrder: SortOrder!
+            ) {
+                groupByUrlname(input: f{urlName}) {
+                    unifiedEvents(
+                        input: $searchEventInput
+                        filter: $searchEventsFilter
+                        sortOrder: $sortOrder
+                    ) {
+                        pageInfo {
+                            hasNextPage
+                            endCursor
+                        }
+                        edges {
+                            node {
+                                id
+                                title
+                                eventUrl
+                                dateTime
+                            }
+                        }
+                    }
+                }
+            }
+            """,
+            "variables": {
+                "searchEventsFilter": {
+                    "query": "Rust",
+                    "lat": 0.0,
+                    "lon": 0.0,
+                    "source": "GROUPS",
+                    "startTime": datetime.datetime.now(),
+                    "endTime": ""
+                },
+                "searchEventInput": {
+                    "first": 200,
+                    "after": endCursor
+                },
+                "sortOrder":{
+                    "sortField": "RELEVANCE"
+                }
+            }
+        }
     pass
