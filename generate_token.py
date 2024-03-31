@@ -6,12 +6,6 @@ from dotenv import load_dotenv
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend
 
-# header = {
-#     "kid": "{SIGNING_KEY_ID}",
-#     "typ": "JWT",
-#     "alg": "RS256"
-# }
-
 # Automate loading environment variables in Python script, make them accessible to the project
 load_dotenv()
 
