@@ -76,7 +76,7 @@ def fetch_groups(endCursor=""):
                 "source": "GROUPS"
             },
             "searchGroupInput": {
-                "first": 20,
+                "first": 200,
                 "after": endCursor
             },
             "sortOrder":{
@@ -86,24 +86,24 @@ def fetch_groups(endCursor=""):
     }
     return requests.post(url=URL, headers=headers, json=data)
 
-# def get_rush_groups():
-#     endCursor = None
-#     groups = dict()
-#     while True:
-#         data = fetch_groups(endCursor).json()
-#         edges = data['data']['keywordSearch']['edges']
-#         pageInfo = data['data']['keywordSearch']['pageInfo']
-#         for node in edges:
-#             group = node["node"]["result"]
-#             if not (group["id"] in groups):
-#                 groups[group["id"]] = group
-#         if pageInfo['hasNextPage']:
-#             endCursor = pageInfo['endCursor']
-#         else:
-#             break
-#     return groups
+def get_rush_groups():
+    endCursor = None
+    groups = dict()
+    while True:
+        data = fetch_groups(endCursor).json()
+        edges = data['data']['keywordSearch']['edges']
+        pageInfo = data['data']['keywordSearch']['pageInfo']
+        for node in edges:
+            group = node["node"]["result"]
+            if not (group["id"] in groups):
+                groups[group["id"]] = group
+        if pageInfo['hasNextPage']:
+            endCursor = pageInfo['endCursor']
+        else:
+            break
+    return groups
 
-print(fetch_groups())
+print(len(get_rush_groups()))
 
 def get_events(groups):
     pass
