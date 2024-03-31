@@ -1,5 +1,6 @@
 import requests
 import datetime
+import concurrent.futures
 
 from generate_token import generate_signed_jwt
 
@@ -23,7 +24,7 @@ def authenticate():
         print("Response:", response.text)
         return None, None
 
-def get_rush_groups():
+def fetch_groups(endCursor=""):
     URL = "https://api.meetup.com/gql"
     access_token, refresh_token = authenticate()
 
@@ -75,21 +76,34 @@ def get_rush_groups():
                 "source": "GROUPS"
             },
             "searchGroupInput": {
-                "first": 100000,
-                "after": "cmVjU291cmNlOmdyb3VwLXNlYXJjaCxpbmRleDoxNw=="
+                "first": 20,
+                "after": endCursor
             },
             "sortOrder":{
                 "sortField": "RELEVANCE"
             }
         }
     }
-    
-    response = requests.post(url=URL, headers=headers, json=data)
-    pageInfo = (response.json())["data"]["keywordSearch"]["pageInfo"]
-    edges = (response.json())["data"]["keywordSearch"]["edges"]
-    print(len(edges), pageInfo["endCursor"])
-    
-get_rush_groups()
+    return requests.post(url=URL, headers=headers, json=data)
+
+# def get_rush_groups():
+#     endCursor = None
+#     groups = dict()
+#     while True:
+#         data = fetch_groups(endCursor).json()
+#         edges = data['data']['keywordSearch']['edges']
+#         pageInfo = data['data']['keywordSearch']['pageInfo']
+#         for node in edges:
+#             group = node["node"]["result"]
+#             if not (group["id"] in groups):
+#                 groups[group["id"]] = group
+#         if pageInfo['hasNextPage']:
+#             endCursor = pageInfo['endCursor']
+#         else:
+#             break
+#     return groups
+
+print(fetch_groups())
 
 def get_events(groups):
     pass
