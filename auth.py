@@ -1,8 +1,10 @@
 import requests
 import datetime
 import concurrent.futures
+import pandas as pd
 
 from generate_token import generate_signed_jwt
+from urllib.parse import urlsplit
 
 def authenticate():
     URL = "https://secure.meetup.com/oauth2/access"
@@ -89,6 +91,9 @@ def fetch_groups(endCursor=""):
     return requests.post(url=URL, headers=headers, json=data)
 
 def get_rush_groups():
+    """
+    Return a dictionary of groups
+    """
     endCursor = None
     groups = dict()
     while True:
@@ -105,8 +110,27 @@ def get_rush_groups():
             break
     return groups
 
-groups = get_rush_groups()
-print(len(groups))
+def get_known_rush_groups(fileName):
+    """
+    Read url and location of groups. Extract the urlname from the url
+    Return a dictionary of groups
+    """
+    groups = dict()
+    df = pd.read_csv(fileName, header=0, usecols=['url', 'location'])
+
+    # Format: [source](https://stackoverflow.com/questions/35616434/how-can-i-get-the-base-of-a-url-in-python)
+    # https://www.meetup.com/seattle-rust-user-group/
+    # split_url.scheme   "http"
+    # split_url.netloc   "www.meetup.com" 
+    # split_url.path     "seattle-rust-user-group/"
+    for index, row in df.iterrows():
+        split_url = urlsplit(row["url"])
+        group = {}
+        group["urlname"] = (split_url.path).replace("/", "")
+        group["location"] = row["location"]
+        groups[index] = group
+        print(groups[index])
+    return groups
 
 def get_20_events(groups):
     events = list()
@@ -163,5 +187,3 @@ def get_20_events(groups):
 
 def get_events():
     pass
-
-get_20_events(groups)
