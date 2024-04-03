@@ -105,9 +105,11 @@ def get_rush_groups():
             break
     return groups
 
-print(len(get_rush_groups()))
+groups = get_rush_groups()
+print(len(groups))
 
-def get_events(groups):
+def get_20_events(groups):
+    events = list()
     URL = "https://api.meetup.com/gql"
     access_token, refresh_token = authenticate()
 
@@ -120,21 +122,14 @@ def get_events(groups):
         "Content-Type": "application/json",
     }
     data = {}
-    for group in groups:
-        urlName = group["urlName"]
+    for group in groups.values():
+        urlName = str(group["urlname"])
+        # print(urlName)
         data = {
             "query": """
-            query (
-                $searchEventInput: EventAdminInput!, 
-                $searchEventsFilter: GroupEventsFilter!,
-                $sortOrder: SortOrder!
-            ) {
-                groupByUrlname(input: f{urlName}) {
-                    unifiedEvents(
-                        input: $searchEventInput
-                        filter: $searchEventsFilter
-                        sortOrder: $sortOrder
-                    ) {
+            query ($urlName: String!) {
+                groupByUrlname(urlname: $urlName) {
+                    unifiedEvents {
                         pageInfo {
                             hasNextPage
                             endCursor
@@ -152,21 +147,21 @@ def get_events(groups):
             }
             """,
             "variables": {
-                "searchEventsFilter": {
-                    "query": "Rust",
-                    "lat": 0.0,
-                    "lon": 0.0,
-                    "source": "GROUPS",
-                    "startTime": datetime.datetime.now(),
-                    "endTime": ""
-                },
+                "urlName": urlName,
                 "searchEventInput": {
-                    "first": 200,
-                    "after": endCursor
-                },
-                "sortOrder":{
-                    "sortField": "RELEVANCE"
+                    "first": 20,
+                    "after": ""
                 }
             }
         }
+        response = requests.post(url=URL, headers=headers, json=data)
+        data = response.json()["data"]
+        edges = data["groupByUrlname"]["unifiedEvents"]["edges"]
+        if edges:
+            print(urlName, "\n",edges)
+            print()
+
+def get_events():
     pass
+
+get_20_events(groups)
