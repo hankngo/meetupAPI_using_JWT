@@ -129,7 +129,7 @@ def get_known_rush_groups(fileName):
         group["urlname"] = (split_url.path).replace("/", "")
         group["location"] = row["location"]
         groups[index] = group
-        print(groups[index])
+        # print(groups[index])
     return groups
 
 def get_20_events(groups):
@@ -146,6 +146,7 @@ def get_20_events(groups):
         "Content-Type": "application/json",
     }
     data = {}
+    count = 1
     for group in groups.values():
         urlName = str(group["urlname"])
         # print(urlName)
@@ -180,10 +181,20 @@ def get_20_events(groups):
         }
         response = requests.post(url=URL, headers=headers, json=data)
         data = response.json()["data"]
-        edges = data["groupByUrlname"]["unifiedEvents"]["edges"]
-        if edges:
-            print(urlName, "\n",edges)
-            print()
+        if data:
+            searchGroupByUrlname = data["groupByUrlname"]
+            if searchGroupByUrlname:
+                edges = searchGroupByUrlname["unifiedEvents"]["edges"]
+                if edges:
+                    print(count, urlName, "\n",edges)
+                    print()
+                    count += 1
 
 def get_events():
-    pass
+    groups = get_rush_groups()
+    get_20_events(groups)
+    print("\nNext events\n")
+    groups = get_known_rush_groups("rust_meetup_groups.csv")
+    get_20_events(groups)
+
+get_events()
