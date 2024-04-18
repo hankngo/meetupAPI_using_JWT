@@ -122,7 +122,7 @@ def get_known_rush_groups(fileName):
     # https://www.meetup.com/seattle-rust-user-group/
     # split_url.scheme   "http"
     # split_url.netloc   "www.meetup.com" 
-    # split_url.path     "seattle-rust-user-group/"
+    # split_url.path     "/seattle-rust-user-group/"
     for index, row in df.iterrows():
         split_url = urlsplit(row["url"])
         group = {}
@@ -133,6 +133,7 @@ def get_known_rush_groups(fileName):
     return groups
 
 def get_20_events(groups):
+    # TODO: Make sure list of 20 events has all values for list of Event
     events = list()
     URL = "https://api.meetup.com/gql"
     access_token, refresh_token = authenticate()
@@ -152,9 +153,9 @@ def get_20_events(groups):
         # print(urlName)
         data = {
             "query": """
-            query ($urlName: String!) {
+            query ($urlName: String!, $searchEventInput: ConnectionInput!) {
                 groupByUrlname(urlname: $urlName) {
-                    unifiedEvents {
+                    upcomingEvents(input: $searchEventInput, sortOrder: ASC) {
                         pageInfo {
                             hasNextPage
                             endCursor
@@ -174,8 +175,7 @@ def get_20_events(groups):
             "variables": {
                 "urlName": urlName,
                 "searchEventInput": {
-                    "first": 20,
-                    "after": ""
+                    "first": 20
                 }
             }
         }
@@ -184,17 +184,26 @@ def get_20_events(groups):
         if data:
             searchGroupByUrlname = data["groupByUrlname"]
             if searchGroupByUrlname:
-                edges = searchGroupByUrlname["unifiedEvents"]["edges"]
+                edges = searchGroupByUrlname["upcomingEvents"]["edges"]
                 if edges:
                     print(count, urlName, "\n",edges)
                     print()
                     count += 1
 
-def get_events():
+def get_events() -> list[Event]:
+    # event_list = list()
     groups = get_rush_groups()
-    get_20_events(groups)
+    events = get_20_events(groups)
+    # event_list = generate_event_list(get_20_events(groups), event_list)
     print("\nNext events\n")
-    groups = get_known_rush_groups("rust_meetup_groups.csv")
-    get_20_events(groups)
+    # groups = get_known_rush_groups("rust_meetup_groups.csv")
+    # get_20_events(groups)
+    return event_list
 
-get_events()
+# TODO: Generate events into list of Event
+# def generate_event_list(events, event_list) -> list[Event]:
+    # Event(name, location, date, url, virtual, organizerName, organizerUrl, duplicate=False)
+    # event_list.append(Event(name, location, date, url, virtual, organizerName, organizerUrl))
+    # return event_list
+
+# print(get_rush_groups())
