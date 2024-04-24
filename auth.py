@@ -61,6 +61,7 @@ def fetch_groups(endCursor=""):
                             ... on Group {
                                 id
                                 name
+                                link
                                 urlname
                                 latitude
                                 longitude
@@ -97,9 +98,10 @@ def get_rush_groups():
     endCursor = None
     groups = dict()
     while True:
-        data = fetch_groups(endCursor).json()
-        edges = data['data']['keywordSearch']['edges']
-        pageInfo = data['data']['keywordSearch']['pageInfo']
+        response = fetch_groups(endCursor).json()
+        data = response['data']
+        edges = data['keywordSearch']['edges']
+        pageInfo = data['keywordSearch']['pageInfo']
         for node in edges:
             group = node["node"]["result"]
             if not (group["id"] in groups):
@@ -124,17 +126,18 @@ def get_known_rush_groups(fileName):
     # split_url.netloc   "www.meetup.com" 
     # split_url.path     "/seattle-rust-user-group/"
     for index, row in df.iterrows():
-        split_url = urlsplit(row["url"])
         group = {}
+        group["link"] = row["url"]
+        split_url = urlsplit(group["link"])
         group["urlname"] = (split_url.path).replace("/", "")
         group["location"] = row["location"]
         groups[index] = group
         # print(groups[index])
     return groups
 
-def get_20_events(groups):
+def get_20_events(groups) -> []:
     # TODO: Make sure list of 20 events has all values for list of Event
-    events = list()
+    events = []
     URL = "https://api.meetup.com/gql"
     access_token, refresh_token = authenticate()
 
@@ -149,8 +152,7 @@ def get_20_events(groups):
     data = {}
     count = 1
     for group in groups.values():
-        urlName = str(group["urlname"])
-        # print(urlName)
+        urlName = group["urlname"]
         data = {
             "query": """
             query ($urlName: String!, $searchEventInput: ConnectionInput!) {
@@ -164,8 +166,13 @@ def get_20_events(groups):
                             node {
                                 id
                                 title
-                                eventUrl
                                 dateTime
+                                eventUrl
+                                venue {
+                                    venueType
+                                    lat
+                                    lng
+                                }
                             }
                         }
                     }
@@ -181,29 +188,60 @@ def get_20_events(groups):
         }
         response = requests.post(url=URL, headers=headers, json=data)
         data = response.json()["data"]
+
         if data:
             searchGroupByUrlname = data["groupByUrlname"]
             if searchGroupByUrlname:
                 edges = searchGroupByUrlname["upcomingEvents"]["edges"]
                 if edges:
-                    print(count, urlName, "\n",edges)
-                    print()
-                    count += 1
+                    # print(count, urlName, "\n",edges)
+                    # print()
+                    # count += 1
+                    for edge in edges:
+                        node = edge["node"]
+                        if node:
+                            name = node["title"]
+                            lat, lng = 0, 0
+                            virtual = True
+                            venue = node["venue"]
+                            print(venue)
+                            if venue:
+                                lat, lng = venue["lat"], venue["lng"] # location
+                                if venue["venueType"] != "online":
+                                    virtual = False
+                            date = node["dateTime"]
+                            url = node["eventUrl"]
+                            organizerName = group.get("name", urlName)
+                            organizerUrl = group["link"]
+                            # events.append(Event(name, location, date, url, virtual, organizerName, organizerUrl, duplicate=False))
+                            print(f"Event({name}, location:lat={lat},lng={lng}, {date}, {url}, Virtual:{virtual}, {organizerName}, {organizerUrl}\n")
+    return events
 
-def get_events() -> list[Event]:
-    # event_list = list()
+def get_events(): #-> list[Event]:
+    # TODO: get list of events from Meetup and known Rush groups, and combine two list together
+    # return the event source
+    event_list = []
     groups = get_rush_groups()
     events = get_20_events(groups)
-    # event_list = generate_event_list(get_20_events(groups), event_list)
     print("\nNext events\n")
-    # groups = get_known_rush_groups("rust_meetup_groups.csv")
-    # get_20_events(groups)
+    groups = get_known_rush_groups("rust_meetup_groups.csv")
+    get_20_events(groups)
     return event_list
 
-# TODO: Generate events into list of Event
-# def generate_event_list(events, event_list) -> list[Event]:
-    # Event(name, location, date, url, virtual, organizerName, organizerUrl, duplicate=False)
-    # event_list.append(Event(name, location, date, url, virtual, organizerName, organizerUrl))
-    # return event_list
+get_events()
 
 # print(get_rush_groups())
+# print("\n")
+# print(get_known_rush_groups("rust_meetup_groups.csv"))
+
+# 9 code-mavens 
+# [{'node': {'id': '300144781', 'title': 'Rust at Microsoft, Tel Aviv - Are we embedded yet?', 'dateTime': '2024-05-09T18:00+03:00', 'eventUrl': 'https://www.meetup.com/code-mavens/events/300144781', 'venue': {'venueType': '', 'lat': 32.07728, 'lng': 34.79318}}}]
+#  name = edges["node"]["title"]
+#  location = venue:(Venue)
+    # Check if venueType:(String) == "": get lat, lon
+    # else: n/a
+#  url = edges["node"]["eventUrl"]
+#  virtual =  edges["node"]["isOnline"]
+#  organizerName = group["name"] or group["urlname"]
+#  organizerUrl = group["link"]
+#  Event(name, location, date, url, virtual, organizerName, organizerUrl, duplicate=False)
